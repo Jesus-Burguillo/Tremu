@@ -6,10 +6,55 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int           @id @default(autoincrement())
+  email    String        @unique
+  name     String
+  password String
+  tasks    Task[]        @relation("AssignedTasks") // relacion uno a muchos con Task
+  boards   BoardMember[] // relacion muchos a muchos con Board (via tabla intermedia (BoardMember))
+}
+
+model Board {
+  id        Int           @id @default(autoincrement())
+  title     String
+  createdAt DateTime      @default(now())
+  columns   Column[]
+  members   BoardMember[]
+}
+
+model BoardMember {
+  id      Int    @id @default(autoincrement())
+  user    User   @relation(fields: [userId], references: [id])
+  board   Board  @relation(fields: [boardId], references: [id])
+  userId  Int
+  boardId Int
+  role    String // "owner", "member", etc...
+}
+
+model Column {
+  id      Int    @id @default(autoincrement())
+  title   String
+  order   Int
+  board   Board  @relation(fields: [boardId], references: [id])
+  boardId Int
+  tasks   Task[]
+}
+
+model Task {
+  id           Int     @id @default(autoincrement())
+  title        String
+  description  String?
+  order        Int
+  column       Column  @relation(fields: [columnId], references: [id])
+  columnId     Int
+  assignedTo   User?   @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  assignedToId Int?
 }
