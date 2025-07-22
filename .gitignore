@@ -1,0 +1,5 @@
+# Ignore unnecessary files and directories
+# Node.js dependencies
+**/node_modules
+# Environment variables
+**/.env
