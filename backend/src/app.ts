@@ -9,8 +9,13 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Aqui deberan ir los endpoints
+// Import the auth routes
+import authRoutes from './routes/authRoutes'
 
+// Aqui deberan ir los endpoints
+app.use('/api/auth', authRoutes)
+
+// Example route
 app.get('/', (req, res) => {
   res.send('Hello World! 👋')
 })
