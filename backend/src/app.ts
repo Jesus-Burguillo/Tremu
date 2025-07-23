@@ -13,10 +13,13 @@ app.use(express.json())
 import authRoutes from './routes/authRoutes'
 // Import the user routes
 import userRoutes from './routes/userRoutes'
+// Import the board routes
+import boardRoutes from './routes/boardRoutes'
 
 // Aqui deberan ir los endpoints
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api', boardRoutes)
 
 // Example route
 app.get('/', (req, res) => {

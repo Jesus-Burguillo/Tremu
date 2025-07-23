@@ -27,7 +27,7 @@ router.get('/me', authMidddleware, async (req: AuthRequest, res) => {
     }
 
     // 3. Send the response
-    res.json({
+    res.status(200).json({
       id: user.id,
       email: user.email,
       name: user.name
