@@ -14,20 +14,25 @@ datasource db {
 }
 
 model User {
-  id       Int           @id @default(autoincrement())
-  email    String        @unique
-  name     String
-  password String
-  tasks    Task[]        @relation("AssignedTasks") // relacion uno a muchos con Task
-  boards   BoardMember[] // relacion muchos a muchos con Board (via tabla intermedia (BoardMember))
+  id          Int           @id @default(autoincrement())
+  email       String        @unique
+  name        String
+  password    String
+  tasks       Task[]        @relation("AssignedTasks") // relacion uno a muchos con Task
+  boards      BoardMember[] // relacion muchos a muchos con Board (via tabla intermedia (BoardMember))
+  ownedBoards Board[]       @relation("OwnedBoards")
 }
 
 model Board {
-  id        Int           @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   title     String
-  createdAt DateTime      @default(now())
-  columns   Column[]
-  members   BoardMember[]
+  createdAt DateTime @default(now())
+
+  ownerId Int
+  owner   User @relation("OwnedBoards", fields: [ownerId], references: [id])
+
+  columns Column[]
+  members BoardMember[]
 }
 
 model BoardMember {
