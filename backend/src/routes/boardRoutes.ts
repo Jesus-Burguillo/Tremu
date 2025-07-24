@@ -26,7 +26,7 @@ router.post('/boards', authMidddleware, async (req: AuthRequest, res) => {
         ownerId: req.user?.id! // <-- Assuming req.user is defined due to authMiddleware
       }
     })
-    
+
     // 3. Create the BoardMember (userId = req.user.id, boardId = newBoard.id, role = "owner")
     const newBoardMember = await prisma.boardMember.create({
       data: {
@@ -68,7 +68,7 @@ router.get('/boards', authMidddleware, async (req: AuthRequest, res) => {
         board: true
       }
     })
-    
+
     // 3. Map to a cleaner response
     const boards = memberships.map(m => ({
       id: m.board.id,
@@ -78,7 +78,7 @@ router.get('/boards', authMidddleware, async (req: AuthRequest, res) => {
     }))
 
     if (boards.length === 0) {
-      res.status(200).json({
+      return res.status(200).json({
         message: "You are not a member of any boards"
       })
     }
@@ -143,15 +143,20 @@ router.get('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
       })
     }
 
-    // 5. Map to a cleaner response
+    // 5. Check if the user is owner of the board
+    const myMembership = board.members.find(m => m.user.id === req.user?.id)
+
+    // 6. Map to a cleaner response
     const response = {
       id: board.id,
       title: board.title,
       createdAt: board.createdAt,
       owner: board.ownerId === req.user?.id,
+      role: myMembership?.role, // 👈 The ? operator is used to check if myMembership is defined
       members: board.members.map(m => ({
         id: m.user.id,
-        name: m.user.name
+        name: m.user.name,
+        role: m.role
       }))
     }
 
@@ -165,5 +170,167 @@ router.get('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
   }
 })
 
+router.delete('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
+  try {
+    // 1. Parse the id to an integer
+    const idInt = parseInt(req.params.id)
+
+    if (isNaN(idInt)) {
+      return res.status(400).json({
+        message: "Ivalid ID format, it must be a number"
+      })
+    }
+
+    // 2. Get the board
+    const board = await prisma.board.findUnique({
+      where: {
+        id: idInt
+      }
+    })
+
+    if (!board) {
+      return res.status(404).json({
+        message: "Board not found"
+      })
+    }
+
+    // 3. Check if the user is member of the board and is the owner
+    if (board.ownerId !== req.user?.id) {
+      return res.status(403).json({
+        message: "You are not the owner of this board"
+      })
+    }
+
+    // 4. Delete relations in order
+    await prisma.boardMember.deleteMany({
+      where: {
+        boardId: idInt
+      }
+    })
+
+    // Delete tasks if needed
+    const columns = await prisma.column.findMany({
+      where: {
+        boardId: idInt
+      },
+      select: {
+        id: true
+      }
+    })
+
+    const columnIds = columns.map(c => c.id)
+
+    await prisma.task.deleteMany({
+      where: {
+        columnId: {
+          in: columnIds
+        }
+      }
+    })
+
+    await prisma.column.deleteMany({
+      where: {
+        boardId: idInt
+      }
+    })
+
+    // 5. Delete the board
+    await prisma.board.delete({
+      where: {
+        id: idInt
+      }
+    })
+
+    // 6. Send the response
+    res.status(200).json({
+      message: "Board deleted successfully"
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "An error occurred while deleting a board",
+      error: error instanceof Error ? error.message : "Unknown error"
+    })
+  }
+})
+
+router.post('/boards/:id/invite', authMidddleware, async (req: AuthRequest, res) => {
+  try {
+    // 1. Parse the id to an integer and extract the email from the request body
+    const idInt = parseInt(req.params.id)
+    const { email } = req.body
+
+    if (isNaN(idInt) || !email || typeof email !== 'string' || email.length < 5) {
+      return res.status(400).json({
+        message: "Invalid request: ID must be a number and email must be a valid string"
+      })
+    }
+
+    // 2. Get the board
+    const board = await prisma.board.findUnique({
+      where: {
+        id: idInt
+      }
+    })
+
+    if (!board) {
+      return res.status(404).json({
+        message: "Board not found"
+      })
+    }
+
+    // 3. Check if the user is the owner of the board
+    if (board.ownerId !== req.user?.id) {
+      return res.status(403).json({
+        message: "Only the owner of the board can invite users"
+      })
+    }
+
+    // 4. Find the user by email and check if it exists
+    const userToInvite = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase()
+      }
+    })
+
+    if (!userToInvite) {
+      return res.status(404).json({
+        message: "User with this email not found"
+      })
+    }
+
+    // 5. Check if the user is already a member of the board
+    const isMember = await prisma.boardMember.findFirst({
+      where: {
+        boardId: idInt,
+        userId: userToInvite.id
+      }
+    })
+
+    if (isMember) {
+      return res.status(400).json({
+        message: "User is already a member of the board"
+      })
+    }
+
+    // 6. Create the boardMember
+    await prisma.boardMember.create({
+      data: {
+        boardId: idInt,
+        userId: userToInvite.id,
+        role: "member" // 👈 Default role for invited users
+      }
+    })
+
+    // 7. Send the response
+    res.status(201).json({
+      message: `User with email ${email} invited to the board successfully`
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: "An error occurred while inviting a user to a board",
+      error: error instanceof Error ? error.message : "Unknown error"
+    })
+  }
+})
 // 4. Export the router
 export default router
