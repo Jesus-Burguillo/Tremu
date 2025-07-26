@@ -15,11 +15,14 @@ import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
 // Import the board routes
 import boardRoutes from './routes/boardRoutes'
+// Import the column routes
+import columnRoutes from './routes/columnRoutes'
 
 // Aqui deberan ir los endpoints
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api', boardRoutes)
+app.use('/api', columnRoutes)
 
 // Example route
 app.get('/', (req, res) => {
