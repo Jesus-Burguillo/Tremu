@@ -18,11 +18,18 @@ import boardRoutes from './routes/boardRoutes'
 // Import the column routes
 import columnRoutes from './routes/columnRoutes'
 
-// Aqui deberan ir los endpoints
+// Here goes the routes
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api', boardRoutes)
 app.use('/api', columnRoutes)
+
+// Swagger
+import swaggerUi from 'swagger-ui-express'
+import swaggerSpec from './swagger'
+
+// Serve the Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Example route
 app.get('/', (req, res) => {

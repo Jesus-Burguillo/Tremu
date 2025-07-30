@@ -8,6 +8,62 @@ import { prisma } from "../lib/prisma"
 const router = Router()
 
 // 3. Create the route
+/**
+ * @swagger
+ * /api/boards:
+ *   post:
+ *     summary: Create a new board
+ *     tags:
+ *       - Boards
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: My Project Board
+ *     responses:
+ *       201:
+ *         description: Board created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 title:
+ *                   type: string
+ *                 owner:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     role:
+ *                       type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Invalid title in request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid title. It must be a string with at least 2 characters.
+ *       500:
+ *         description: Server error while creating the board
+ */
 router.post('/boards', authMidddleware, async (req: AuthRequest, res) => {
   try {
     // 1. Chech if the title is provided
@@ -54,6 +110,43 @@ router.post('/boards', authMidddleware, async (req: AuthRequest, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/boards:
+ *   get:
+ *     summary: Obtain a list of the boards where the user is a member
+ *     security:
+ *       - bearerAuth: []
+ *     tags:
+ *       - Boards
+ *     responses:
+ *       200:
+ *         description: List of boards where the user is a member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       title:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       role:
+ *                         type: string
+ *                 - type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: You are not a member of any boards
+ *       500:
+ *         description: Server error
+ */
 router.get('/boards', authMidddleware, async (req: AuthRequest, res) => {
   try {
     // 1. Extract the userId from the request
@@ -93,6 +186,85 @@ router.get('/boards', authMidddleware, async (req: AuthRequest, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/boards/{id}:
+ *   get:
+ *     summary: Get a specific board by ID (if the user is a member)
+ *     tags:
+ *       - Boards
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID of the board
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Board found and returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 title:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 owner:
+ *                   type: boolean
+ *                 role:
+ *                   type: string
+ *                 members:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *       400:
+ *         description: Missing or invalid board ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid ID format, it must be a number
+ *       403:
+ *         description: User is not a member of the board
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: You are not a member of this board
+ *       404:
+ *         description: Board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Board not found
+ *       500:
+ *         description: Server error while fetching the board
+ */
 router.get('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
   try {
     // 1. Extract the boardId from the request params
@@ -170,6 +342,66 @@ router.get('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/boards/{id}:
+ *   delete:
+ *     summary: Delete a board (only if the user is the owner)
+ *     tags:
+ *       - Boards
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID of the board to delete
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Board deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Board deleted successfully
+ *       400:
+ *         description: Invalid board ID format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid ID format, it must be a number
+ *       403:
+ *         description: User is not the owner of the board
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: You are not the owner of this board
+ *       404:
+ *         description: Board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Board not found
+ *       500:
+ *         description: Server error while deleting the board
+ */
 router.delete('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
   try {
     // 1. Parse the id to an integer
@@ -253,6 +485,79 @@ router.delete('/boards/:id', authMidddleware, async (req: AuthRequest, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/boards/{id}/invite:
+ *   post:
+ *     summary: Invite a user to a board (only the owner can invite)
+ *     tags:
+ *       - Boards
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID of the board to which the user will be invited
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       201:
+ *         description: User successfully invited to the board
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User with email user@example.com invited to the board successfully
+ *       400:
+ *         description: Invalid request or user is already a member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User is already a member of the board
+ *       403:
+ *         description: Only the owner can invite users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Only the owner of the board can invite users
+ *       404:
+ *         description: Board or user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User with this email not found
+ *       500:
+ *         description: Server error while inviting user
+ */
 router.post('/boards/:id/invite', authMidddleware, async (req: AuthRequest, res) => {
   try {
     // 1. Parse the id to an integer and extract the email from the request body
