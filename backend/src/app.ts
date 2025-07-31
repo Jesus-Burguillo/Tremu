@@ -29,7 +29,9 @@ import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './swagger'
 
 // Serve the Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+}
 
 // Example route
 app.get('/', (req, res) => {
