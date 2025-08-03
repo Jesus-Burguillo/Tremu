@@ -1,4 +1,8 @@
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { login } from '@/api/auth'
+import { toast, Toaster } from 'sonner'
+import { useAuth } from '@/context/AuthContext'
 
 type LoginFormInputs = {
   email: string
@@ -7,17 +11,37 @@ type LoginFormInputs = {
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<LoginFormInputs>()
+  const { setUser } = useAuth()
 
-  const onSubmit = (data: LoginFormInputs) => {
+  const onSubmit = async (data: LoginFormInputs) => {
     console.log('Login form submitted:', data)
     // TODO - Handle login logic
+
+    const { data: loginData, error } = await login(data)
+
+    if (error) {
+      toast.error(error)
+      return
+    }
+
+    if (!loginData) {
+      toast.error("Something went wrong")
+      return
+    }
+
+    setUser(loginData.user)
+    toast.success(loginData.message)
+    localStorage.setItem("token", loginData.token)
+
     reset()
   }
 
   return (
     <div className='flex flex-col items-center justify-center min-h-screen bg-gray-100'>
       <div className='w-full max-w-md bg-white rounded shadow p-8'>
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        <Toaster position='top-right' />
+
+        <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
           <div>
@@ -25,7 +49,13 @@ const Login = () => {
             <input
               id="email"
               type="email"
-              {...register("email", { required: "Email is required" })}
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Invalid email format"
+                }
+              })}
               className={`w-full px-3 py-2 border rounded ${errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="you@example.com"
@@ -38,7 +68,17 @@ const Login = () => {
             <input
               id="password"
               type="password"
-              {...register("password", { required: "Password is required" })}
+              {...register("password", {
+                required: "Password is required",
+                minLength: {
+                  value: 8,
+                  message: "Password must be at least 8 characters"
+                },
+                pattern: {
+                  value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                  message: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+                }
+              })}
               className={`w-full px-3 py-2 border rounded ${errors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Your password"
@@ -48,10 +88,12 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition cursor-pointer"
           >
             Login
           </button>
+
+          <p className='text-center text-gray-600 text-sm'>Don&apos;t have an account? <Link to="/register" className='text-blue-600 hover:underline'>Sign up</Link></p>
         </form>
       </div>
     </div>
