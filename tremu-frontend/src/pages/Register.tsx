@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form"
-import { Link, redirect } from "react-router-dom"
+import { Link, redirect, useNavigate } from "react-router-dom"
 import { Toaster, toast } from 'sonner'
 import { register as registerApi } from "@/api/auth"
+import { useEffect } from "react"
 
 type RegisterFormInputs = {
   email: string,
@@ -12,6 +13,15 @@ type RegisterFormInputs = {
 
 const Register = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<RegisterFormInputs>()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      navigate('/')
+    } else {
+      document.title = 'Register | Tremu'
+    }
+  }, [])
 
   const onSubmit = async (data: RegisterFormInputs) => {
     if (data.password !== data.confirmPassword) {

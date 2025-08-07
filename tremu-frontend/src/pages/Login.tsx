@@ -1,8 +1,9 @@
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { login } from '@/api/auth'
 import { toast, Toaster } from 'sonner'
 import { useAuth } from '@/context/AuthContext'
+import { useEffect } from 'react'
 
 type LoginFormInputs = {
   email: string
@@ -12,10 +13,18 @@ type LoginFormInputs = {
 const Login = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<LoginFormInputs>()
   const { setUser } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      navigate('/')
+    } else {
+      document.title = 'Log In | Tremu'
+    }
+  }, [])
 
   const onSubmit = async (data: LoginFormInputs) => {
-    console.log('Login form submitted:', data)
-    // TODO - Handle login logic
+    reset()
 
     const { data: loginData, error } = await login(data)
 
@@ -33,7 +42,7 @@ const Login = () => {
     toast.success(loginData.message)
     localStorage.setItem("token", loginData.token)
 
-    reset()
+    navigate('/')
   }
 
   return (
